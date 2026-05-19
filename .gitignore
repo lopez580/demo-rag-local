@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+*.egg
+
+# Django
+*.sqlite3
+media/
+static/
+staticfiles/
+
+# Entorno
+.env
+.env.local
+.env.development
+.env.production
+venv/
+env/
+.venv/
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+frontend/.env.local
+frontend/.env.production
+
+# Docker
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Ollama / modelos
+*.gguf
+*.bin
+
+# MinIO datos locales
+data/
+
+# pgvector / embeddings cache
+.cache/
