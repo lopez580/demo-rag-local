@@ -1,4 +1,6 @@
 import json
+import tempfile
+import os
 from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -21,14 +23,19 @@ def get_minio_client():
 def upload_document(request):
     try:
         file = request.FILES.get("file")
-        title = request.POST.get("title", file.name)
-        author = request.POST.get("author", "Desconocido")
-        project = request.POST.get("project", "General")
 
         if not file:
             return JsonResponse({"error": "No se envió ningún archivo"}, status=400)
 
+        title = request.POST.get("title", file.name)
+        author = request.POST.get("author", "Desconocido")
+        project = request.POST.get("project", "General")
+
+        # Leer contenido del archivo en memoria antes de cualquier otra operación
+        file_content = file.read()
+
         # Guardar en MinIO
+        import io
         client = get_minio_client()
         minio_key = f"{project}/{file.name}"
 
@@ -37,7 +44,7 @@ def upload_document(request):
         except:
             client.create_bucket(Bucket=settings.MINIO_BUCKET)
 
-        client.upload_fileobj(file, settings.MINIO_BUCKET, minio_key)
+        client.upload_fileobj(io.BytesIO(file_content), settings.MINIO_BUCKET, minio_key)
 
         # Guardar metadatos en PostgreSQL
         doc = Document.objects.create(
@@ -48,21 +55,22 @@ def upload_document(request):
             minio_key=minio_key,
         )
 
-        # Descargar temporalmente e indexar
-        import tempfile, os
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            file.seek(0)
-            tmp.write(file.read())
-            tmp_path = tmp.name
+        # Guardar temporalmente e indexar
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".pdf")
+        try:
+            with os.fdopen(tmp_fd, 'wb') as tmp:
+                tmp.write(file_content)
 
-        ingestar_pdf(tmp_path, {
-            "documento_id": doc.id,
-            "titulo": title,
-            "autor": author,
-            "proyecto": project,
-            "archivo": file.name,
-        })
-        os.unlink(tmp_path)
+            ingestar_pdf(tmp_path, {
+                "documento_id": doc.id,
+                "titulo": title,
+                "autor": author,
+                "proyecto": project,
+                "archivo": file.name,
+            })
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
 
         doc.indexed = True
         doc.save()

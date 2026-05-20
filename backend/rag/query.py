@@ -5,7 +5,7 @@ import json
 
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 OLLAMA_URL = "http://host.docker.internal:11434/api/generate"
-LLM_MODEL = "llama3.1:8b"
+LLM_MODEL = "qwen2.5:3b"
 
 DB_CONFIG = {
     "dbname": "ragdb",
