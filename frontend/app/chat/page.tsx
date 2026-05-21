@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import UploadForm from "@/components/UploadForm";
 import MessageList from "@/components/MessageList";
+import Navbar from "@/components/NavBar";
 
 export interface Message {
     role: "user" | "assistant";
@@ -73,39 +74,41 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-950 flex">
-            {/* Sidebar */}
-            <aside className="w-80 bg-gray-900 border-r border-gray-800 p-4 flex flex-col gap-4">
-                <h2 className="text-white font-semibold text-lg">RAG Demo </h2>
-                <UploadForm />
-            </aside>
+        <div className="min-h-screen bg-gray-950 flex flex-col">
+            <Navbar />
+            <div className="flex flex-1 overflow-hidden">
+                {/* Sidebar */}
+                <aside className="w-80 bg-gray-900 border-r border-gray-800 p-4 flex flex-col gap-4 overflow-y-auto">
+                    <UploadForm />
+                </aside>
 
-            {/* Chat */}
-            <main className="flex-1 flex flex-col">
-                <div className="flex-1 overflow-y-auto p-6">
-                    <MessageList messages={messages} />
-                    <div ref={bottomRef} />
-                </div>
+                {/* Chat */}
+                <main className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <MessageList messages={messages} />
+                        <div ref={bottomRef} />
+                    </div>
 
-                {/* Input */}
-                <div className="border-t border-gray-800 p-4 flex gap-3">
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                        placeholder="Escribe tu pregunta..."
-                        className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-3 outline-none placeholder-gray-500"
-                    />
-                    <button
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                    >
-                        {loading ? "..." : "Enviar"}
-                    </button>
-                </div>
-            </main>
+                    {/* Input */}
+                    <div className="border-t border-gray-800 p-4 flex gap-3">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                            placeholder="Escribe tu pregunta..."
+                            className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-3 outline-none placeholder-gray-500"
+                        />
+                        <button
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                        >
+                            {loading ? "..." : "Enviar"}
+                        </button>
+                    </div>
+                </main>
+            </div>
         </div>
     );
 }

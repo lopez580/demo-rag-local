@@ -1,6 +1,14 @@
 "use client";
 
 import { useState } from "react";
+interface Document {
+  id: number;
+  title: string;
+  author: string;
+  project: string;
+  file_name: string;
+  uploaded_at: string;
+}
 
 export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);

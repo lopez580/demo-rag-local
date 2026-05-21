@@ -103,3 +103,10 @@ def query_document(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+    
+@require_http_methods(["GET"])
+def list_documents(request):
+    docs = Document.objects.filter(indexed=True).values(
+        "id", "title", "author", "project", "file_name", "uploaded_at"
+    )
+    return JsonResponse({"documentos": list(docs)}, json_dumps_params={"default": str})
