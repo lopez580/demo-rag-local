@@ -32,19 +32,30 @@ RESPUESTA:"""
 def get_conn():
     return psycopg2.connect(**DB_CONFIG)
 
-def buscar_fragmentos(pregunta: str, top_k: int = 4) -> list[dict]:
+def buscar_fragmentos(pregunta: str, top_k: int = 4, documento_ids: list = None) -> list[dict]:
     embedding = list(embedder.embed([pregunta]))[0].tolist()
 
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT contenido, titulo, archivo, pagina, proyecto,
-               1 - (embedding <=> %s::vector) AS score
-        FROM fragmentos
-        ORDER BY embedding <=> %s::vector
-        LIMIT %s
-    """, (json.dumps(embedding), json.dumps(embedding), top_k))
+    if documento_ids and len(documento_ids) > 0:
+        placeholders = ",".join(["%s"] * len(documento_ids))
+        cur.execute(f"""
+            SELECT contenido, titulo, archivo, pagina, proyecto,
+                   1 - (embedding <=> %s::vector) AS score
+            FROM fragmentos
+            WHERE documento_id IN ({placeholders})
+            ORDER BY embedding <=> %s::vector
+            LIMIT %s
+        """, (json.dumps(embedding), *documento_ids, json.dumps(embedding), top_k))
+    else:
+        cur.execute("""
+            SELECT contenido, titulo, archivo, pagina, proyecto,
+                   1 - (embedding <=> %s::vector) AS score
+            FROM fragmentos
+            ORDER BY embedding <=> %s::vector
+            LIMIT %s
+        """, (json.dumps(embedding), json.dumps(embedding), top_k))
 
     resultados = []
     for row in cur.fetchall():
@@ -61,8 +72,9 @@ def buscar_fragmentos(pregunta: str, top_k: int = 4) -> list[dict]:
     conn.close()
     return resultados
 
-def consultar_stream(pregunta: str):
-    fragmentos = buscar_fragmentos(pregunta)
+
+def consultar_stream(pregunta: str, documento_ids: list = None):
+    fragmentos = buscar_fragmentos(pregunta, documento_ids=documento_ids)
 
     if not fragmentos:
         yield "No encontré información sobre esto en los documentos disponibles."
@@ -78,7 +90,6 @@ def consultar_stream(pregunta: str):
         pregunta=pregunta,
     )
 
-    # Stream desde Ollama
     response = requests.post(
         OLLAMA_URL,
         json={
@@ -87,7 +98,7 @@ def consultar_stream(pregunta: str):
             "stream": True,
         },
         stream=True,
-        timeout=120,
+        timeout=300,
     )
 
     for line in response.iter_lines():
@@ -97,7 +108,6 @@ def consultar_stream(pregunta: str):
             if token:
                 yield token
             if data.get("done"):
-                # Enviar fuentes al final
                 fuentes = "\n\n---\n**Fuentes:**\n"
                 for f in fragmentos:
                     fuentes += f"- {f['archivo']} — pág. {f['pagina']} (score: {f['score']})\n"

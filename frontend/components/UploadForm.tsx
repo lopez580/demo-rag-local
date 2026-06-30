@@ -1,37 +1,34 @@
 "use client";
 
 import { useState } from "react";
-interface Document {
-  id: number;
-  title: string;
-  author: string;
-  project: string;
-  file_name: string;
-  uploaded_at: string;
-}
+import { apiFetch } from "@/lib/api";
 
-export default function UploadForm() {
+export default function UploadForm({
+  proyectoId,
+  proyectoNombre,
+}: {
+  proyectoId: number | null;
+  proyectoNombre: string;
+}) {
   const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("");
-  const [project, setProject] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
 
   async function handleUpload() {
     if (!file) return;
 
     setLoading(true);
     setMessage("");
+    setSuccess(false);
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("title", title || file.name);
-    formData.append("author", author || "Desconocido");
-    formData.append("project", project || "General");
+    formData.append("title", file.name);
+    formData.append("project", proyectoNombre || "General");
 
     try {
-      const res = await fetch("http://localhost:8000/api/upload/", {
+      const res = await apiFetch("/api/upload/", {
         method: "POST",
         body: formData,
       });
@@ -39,16 +36,17 @@ export default function UploadForm() {
       const data = await res.json();
 
       if (data.ok) {
-        setMessage(` ${data.mensaje}`);
+        setMessage(data.mensaje);
+        setSuccess(true);
         setFile(null);
-        setTitle("");
-        setAuthor("");
-        setProject("");
+        
       } else {
-        setMessage(` ${data.error}`);
+        setMessage(data.error);
+        setSuccess(false);
       }
     } catch {
-      setMessage(" Error al conectar con el servidor.");
+      setMessage("Error al conectar con el servidor.");
+      setSuccess(false);
     } finally {
       setLoading(false);
     }
@@ -56,35 +54,15 @@ export default function UploadForm() {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider">
-        Subir documento
-      </h3>
+      <div className="border-l-4 border-[#E8174A] pl-3">
+        <h3 className="text-[#2B4BA8] text-sm font-semibold">Subir documento</h3>
+        {proyectoNombre && (
+          <p className="text-gray-400 text-xs mt-1">Proyecto: {proyectoNombre}</p>
+        )}
+      </div>
 
-      <input
-        type="text"
-        placeholder="Título"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none placeholder-gray-500"
-      />
 
-      <input
-        type="text"
-        placeholder="Autor"
-        value={author}
-        onChange={(e) => setAuthor(e.target.value)}
-        className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none placeholder-gray-500"
-      />
-
-      <input
-        type="text"
-        placeholder="Proyecto"
-        value={project}
-        onChange={(e) => setProject(e.target.value)}
-        className="w-full bg-gray-800 text-white rounded-lg px-3 py-2 text-sm outline-none placeholder-gray-500"
-      />
-
-      <label className="block w-full cursor-pointer bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg px-3 py-2 text-sm transition-colors">
+      <label className="block w-full cursor-pointer border border-dashed border-gray-300 hover:border-[#2B4BA8] text-gray-400 hover:text-[#2B4BA8] rounded-lg px-3 py-2 text-sm transition-colors text-center">
         {file ? file.name : "Seleccionar PDF..."}
         <input
           type="file"
@@ -97,13 +75,15 @@ export default function UploadForm() {
       <button
         onClick={handleUpload}
         disabled={!file || loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+        className="w-full bg-[#2B4BA8] hover:bg-[#1E3A8A] disabled:opacity-50 text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors"
       >
         {loading ? "Indexando..." : "Subir e indexar"}
       </button>
 
       {message && (
-        <p className="text-xs text-gray-400">{message}</p>
+        <p className={`text-xs ${success ? "text-green-600" : "text-red-500"}`}>
+          {success ? "" : ""}{message}
+        </p>
       )}
     </div>
   );
